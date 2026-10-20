@@ -2,41 +2,24 @@
 
 import math
 
-EDITABLE_FIELDS = (
-    "name",
-    "barcode",
-    "quantity",
-    "price",
-    "category",
-    "brand",
-    "description",
-    "image_url",
-)
 TEXT_FIELDS = ("category", "brand", "description", "image_url")
 
 
-def parse_item_payload(data, partial=False):
-    """Return ``(cleaned, error)``.
+def parse_item_payload(data):
+    """Return ``(cleaned, error)`` for a create payload.
 
     ``cleaned`` holds recognized fields coerced to storage types.
-    On create, a missing quantity or price becomes 0.
+    A missing quantity or price becomes 0.
     """
     if not isinstance(data, dict):
         return None, "Request body must be a JSON object."
 
-    if partial and not any(key in data for key in EDITABLE_FIELDS):
-        return None, "No recognized fields to update."
-
     cleaned = {}
 
-    if "name" in data:
-        name = data["name"]
-        if not isinstance(name, str) or not name.strip():
-            message = "name cannot be empty." if partial else "name is required."
-            return None, message
-        cleaned["name"] = name.strip()
-    elif not partial:
+    name = data.get("name")
+    if not isinstance(name, str) or not name.strip():
         return None, "name is required."
+    cleaned["name"] = name.strip()
 
     if "barcode" in data:
         barcode, error = _optional_text(data["barcode"], "barcode")
@@ -52,7 +35,7 @@ def parse_item_payload(data, partial=False):
         if quantity < 0:
             return None, "quantity cannot be negative."
         cleaned["quantity"] = quantity
-    elif not partial:
+    else:
         cleaned["quantity"] = 0
 
     if "price" in data:
@@ -63,7 +46,7 @@ def parse_item_payload(data, partial=False):
         if price < 0:
             return None, "price cannot be negative."
         cleaned["price"] = price
-    elif not partial:
+    else:
         cleaned["price"] = 0.0
 
     for field in TEXT_FIELDS:
