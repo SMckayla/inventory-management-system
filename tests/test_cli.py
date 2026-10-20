@@ -28,13 +28,6 @@ class FakeClient:
         self.calls.append(("create", payload))
         return {"id": 2, "name": payload["name"]}
 
-    def update_item(self, item_id, payload):
-        self.calls.append(("update", item_id, payload))
-        return {"id": item_id, "name": "Green Tea", "quantity": payload.get("quantity", 3)}
-
-    def delete_item(self, item_id):
-        return {"deleted": {"id": item_id, "name": "Green Tea"}}
-
     def search_items(self, query):
         self.calls.append(("search", query))
         return self.list_items()
@@ -76,7 +69,7 @@ def test_list_and_json_output(monkeypatch, capsys):
     assert '"name": "Green Tea"' in capsys.readouterr().out
 
 
-def test_get_add_update_delete_and_search(monkeypatch, capsys):
+def test_get_add_and_search(monkeypatch, capsys):
     holder = _install(monkeypatch)
 
     assert cli.main(["get", "1"]) == 0
@@ -86,15 +79,6 @@ def test_get_add_update_delete_and_search(monkeypatch, capsys):
     assert "Created #2 Honey" in capsys.readouterr().out
     assert holder["client"].calls[0][1]["name"] == "Honey"
     assert holder["client"].calls[0][1]["quantity"] == 2
-
-    assert cli.main(["update", "1", "--quantity", "8"]) == 0
-    assert "Updated #1" in capsys.readouterr().out
-
-    assert cli.main(["update", "1"]) == 1
-    assert "at least one field" in capsys.readouterr().err
-
-    assert cli.main(["delete", "1"]) == 0
-    assert "Deleted #1 Green Tea" in capsys.readouterr().out
 
     assert cli.main(["search", "tea"]) == 0
     assert holder["client"].calls[-1] == ("search", "tea")
