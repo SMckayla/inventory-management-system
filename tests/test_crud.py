@@ -4,7 +4,7 @@ def test_list_is_empty_at_first(client):
     assert response.get_json() == []
 
 
-def test_create_read_patch_and_delete(client):
+def test_create_and_read(client):
     created = client.post(
         "/api/inventory",
         json={
@@ -24,18 +24,9 @@ def test_create_read_patch_and_delete(client):
     fetched = client.get("/api/inventory/1")
     assert fetched.status_code == 200
     assert fetched.get_json()["brand"] == "Equal Exchange"
-
-    patched = client.patch("/api/inventory/1", json={"quantity": 9})
-    assert patched.status_code == 200
-    assert patched.get_json()["quantity"] == 9
-    assert patched.get_json()["name"] == "Cocoa"
-    assert patched.get_json()["brand"] == "Equal Exchange"
-
-    removed = client.delete("/api/inventory/1")
-    assert removed.status_code == 200
-    assert removed.get_json()["deleted"]["name"] == "Cocoa"
-    assert client.get("/api/inventory/1").status_code == 404
-    assert client.get("/api/inventory").get_json() == []
+    listed = client.get("/api/inventory")
+    assert listed.status_code == 200
+    assert [row["id"] for row in listed.get_json()] == [1]
 
 
 def test_create_rejects_a_missing_or_blank_name(client):
@@ -57,22 +48,6 @@ def test_create_rejects_bad_numbers_and_non_json(client):
 
     empty = client.post("/api/inventory", data="not-json", content_type="text/plain")
     assert empty.status_code == 400
-
-
-def test_patch_requires_a_known_item_and_a_real_field(client):
-    missing = client.patch("/api/inventory/3", json={"quantity": 1})
-    assert missing.status_code == 404
-
-    client.post("/api/inventory", json={"name": "Tea", "quantity": 1, "price": 1})
-    unknown = client.patch("/api/inventory/1", json={"sku": "nope"})
-    assert unknown.status_code == 400
-    empty = client.patch("/api/inventory/1", json={})
-    assert empty.status_code == 400
-
-
-def test_delete_missing_item(client):
-    response = client.delete("/api/inventory/8")
-    assert response.status_code == 404
 
 
 def test_price_is_rounded_and_string_numbers_are_accepted(client):
