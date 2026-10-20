@@ -1,14 +1,18 @@
 """Inventory management Flask application."""
 
-from flask import Flask, jsonify
+from flask import Flask
+
+from app.routes import api_bp
+from app.store import InventoryStore
 
 
-def create_app():
-    """Create and configure the Flask application."""
+def create_app(store=None):
+    """Create the Flask app.
+
+    Tests pass their own store so each test gets a private database array.
+    """
     app = Flask(__name__)
-
-    @app.get("/api/health")
-    def health():
-        return jsonify({"status": "ok"})
-
+    app.config["SECRET_KEY"] = "dev-inventory-lab"
+    app.config["INVENTORY"] = store if store is not None else InventoryStore()
+    app.register_blueprint(api_bp)
     return app
