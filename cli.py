@@ -44,9 +44,6 @@ class ApiClient:
             params["name"] = name
         return self._request("GET", "/api/external/products", params=params)
 
-    def import_product(self, payload):
-        return self._request("POST", "/api/inventory/import", json=payload)
-
     def _request(self, method, path, **kwargs):
         try:
             response = self.session.request(
@@ -92,16 +89,6 @@ def build_parser():
     lookup_cmd = commands.add_parser("lookup", help="Fetch product details from Open Food Facts")
     lookup_cmd.add_argument("--barcode")
     lookup_cmd.add_argument("--name")
-
-    import_cmd = commands.add_parser(
-        "import-product",
-        help="Fetch a product from Open Food Facts and add it to inventory",
-    )
-    import_cmd.add_argument("--barcode")
-    import_cmd.add_argument("--name")
-    import_cmd.add_argument("--quantity", type=int, default=0)
-    import_cmd.add_argument("--price", type=float, default=0)
-    import_cmd.add_argument("--match-index", type=int, default=0)
 
     return parser
 
@@ -151,26 +138,6 @@ def _dispatch(client, args):
             print("No products found.")
             return 0
         print(json.dumps(products, indent=2))
-        return 0
-
-    if args.command == "import-product":
-        if not args.barcode and not args.name:
-            print("Provide --barcode or --name.", file=sys.stderr)
-            return 1
-        payload = {
-            "quantity": args.quantity,
-            "price": args.price,
-            "match_index": args.match_index,
-        }
-        if args.barcode:
-            payload["barcode"] = args.barcode
-        if args.name:
-            payload["name"] = args.name
-        item = client.import_product(payload)
-        print(
-            f"Imported #{item['id']} {item['name']} "
-            f"(qty {item['quantity']}, price {item['price']:.2f})"
-        )
         return 0
 
     print(f"Unknown command: {args.command}", file=sys.stderr)
