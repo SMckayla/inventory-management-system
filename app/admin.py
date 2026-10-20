@@ -51,30 +51,6 @@ def create_item():
     return redirect(url_for("admin.dashboard"))
 
 
-@admin_bp.post("/items/<int:item_id>/update")
-def update_item(item_id):
-    payload, error = parse_item_payload(_form_payload(), partial=True)
-    if error:
-        flash(error, "error")
-        return redirect(url_for("admin.dashboard"))
-    item = _store().update(item_id, payload)
-    if item is None:
-        flash("Item not found.", "error")
-    else:
-        flash(f"Updated {item['name']}.", "success")
-    return redirect(url_for("admin.dashboard"))
-
-
-@admin_bp.post("/items/<int:item_id>/delete")
-def delete_item(item_id):
-    item = _store().delete(item_id)
-    if item is None:
-        flash("Item not found.", "error")
-    else:
-        flash(f"Deleted {item['name']}.", "success")
-    return redirect(url_for("admin.dashboard"))
-
-
 @admin_bp.post("/import")
 def import_item():
     form = request.form
