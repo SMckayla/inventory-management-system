@@ -11,7 +11,7 @@ def test_dashboard_renders_lookup_and_empty_inventory(client):
     assert 'name="barcode"' in page
 
 
-def test_admin_can_create_update_and_delete(client):
+def test_admin_can_create_an_item(client):
     created = client.post(
         "/items",
         data={
@@ -28,28 +28,12 @@ def test_admin_can_create_update_and_delete(client):
     page = created.get_data(as_text=True)
     assert "Added Rice." in page
     assert "Rice" in page
-
-    updated = client.post(
-        "/items/1/update",
-        data={
-            "name": "Brown Rice",
-            "quantity": "8",
-            "price": "3.25",
-            "barcode": "777",
-            "category": "Grains",
-            "brand": "Lundberg",
-            "description": "Brown rice",
-        },
-        follow_redirects=True,
-    )
-    assert "Updated Brown Rice." in updated.get_data(as_text=True)
+    assert "Edit" not in page
+    assert "Delete" not in page
     stored = client.get("/api/inventory/1").get_json()
-    assert stored["quantity"] == 8
-    assert stored["price"] == 3.25
-
-    deleted = client.post("/items/1/delete", follow_redirects=True)
-    assert "Deleted Brown Rice." in deleted.get_data(as_text=True)
-    assert client.get("/api/inventory").get_json() == []
+    assert stored["name"] == "Rice"
+    assert stored["quantity"] == 4
+    assert stored["price"] == 3.0
 
 
 def test_admin_shows_external_results_and_imports_them(client, store, monkeypatch):
