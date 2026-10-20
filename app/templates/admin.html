@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Inventory Admin</title>
+  <style>
+    :root {
+      --bg: #f4f6f8;
+      --ink: #1c2834;
+      --muted: #52606d;
+      --line: #d9e2ec;
+      --card: #ffffff;
+      --accent: #0b6e4f;
+      --accent-dark: #08543c;
+      --danger: #9b1c1c;
+      --ok-bg: #e3f9ef;
+      --err-bg: #fde8e8;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Segoe UI", Helvetica, Arial, sans-serif;
+      background: var(--bg);
+      color: var(--ink);
+      line-height: 1.45;
+    }
+    header, main { width: min(1100px, calc(100% - 2rem)); margin: 0 auto; }
+    header { padding: 1.5rem 0 0.5rem; }
+    h1 { margin: 0 0 0.25rem; font-size: 1.8rem; }
+    h2 { margin: 0 0 0.75rem; font-size: 1.15rem; }
+    p.lede { margin: 0; color: var(--muted); }
+    .stats { display: flex; flex-wrap: wrap; gap: 0.75rem; margin: 1rem 0; }
+    .stat {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 0.75rem 1rem;
+      min-width: 9rem;
+    }
+    .stat span { display: block; color: var(--muted); font-size: 0.85rem; }
+    .stat strong { font-size: 1.25rem; }
+    .panels {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1rem;
+    }
+    section.card, .results, .inventory {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 1rem;
+      margin-bottom: 1rem;
+    }
+    label { display: block; font-size: 0.9rem; margin: 0.55rem 0 0.2rem; }
+    input, textarea {
+      width: 100%;
+      padding: 0.45rem 0.55rem;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      font: inherit;
+    }
+    .row { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; }
+    button {
+      margin-top: 0.8rem;
+      background: var(--accent);
+      color: white;
+      border: 0;
+      border-radius: 6px;
+      padding: 0.5rem 0.8rem;
+      font: inherit;
+      cursor: pointer;
+    }
+    button:hover { background: var(--accent-dark); }
+    button.danger { background: var(--danger); }
+    .flash { padding: 0.6rem 0.8rem; border-radius: 6px; margin: 0.8rem 0; }
+    .flash.success { background: var(--ok-bg); }
+    .flash.error { background: var(--err-bg); }
+    table { width: 100%; border-collapse: collapse; }
+    th, td { text-align: left; padding: 0.5rem; border-bottom: 1px solid var(--line); vertical-align: top; }
+    .actions form { display: inline; }
+    .actions button { margin-top: 0; }
+    details { margin-bottom: 0.4rem; }
+    .product {
+      border-top: 1px solid var(--line);
+      padding-top: 0.8rem;
+      margin-top: 0.8rem;
+    }
+    .product:first-of-type { border-top: 0; padding-top: 0; margin-top: 0; }
+    .hint { color: var(--muted); font-size: 0.9rem; }
+    @media (max-width: 800px) {
+      .panels, .row { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Inventory Admin</h1>
+    <p class="lede">Add, edit, and remove stock. Look up a barcode or product name on Open Food Facts and save it to inventory.</p>
+  </header>
+  <main>
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% for category, message in messages %}
+        <p class="flash {{ category }}" role="status">{{ message }}</p>
+      {% endfor %}
+    {% endwith %}
+
+    <div class="stats">
+      <div class="stat"><span>Items</span><strong>{{ stats.count }}</strong></div>
+      <div class="stat"><span>Units</span><strong>{{ stats.total_quantity }}</strong></div>
+      <div class="stat"><span>Stock value</span><strong>{{ "%.2f"|format(stats.total_value) }}</strong></div>
+    </div>
+
+    <div class="panels">
+      <section class="card">
+        <h2>Look up a product</h2>
+        <form method="get" action="{{ url_for('admin.dashboard') }}">
+          <label for="barcode">Barcode</label>
+          <input id="barcode" name="barcode" value="{{ barcode }}" inputmode="numeric" autocomplete="off">
+          <label for="lookup-name">Or product name</label>
+          <input id="lookup-name" name="name" value="{{ name }}" autocomplete="off">
+          <button type="submit">Search Open Food Facts</button>
+        </form>
+        <p class="hint">A barcode is used when both fields are filled in.</p>
+      </section>
+
+      <section class="card">
+        <h2>Add an item</h2>
+        <form method="post" action="{{ url_for('admin.create_item') }}">
+          <label for="name">Name</label>
+          <input id="name" name="name" required>
+          <div class="row">
+            <div>
+              <label for="quantity">Quantity</label>
+              <input id="quantity" name="quantity" type="number" min="0" step="1" value="0" required>
+            </div>
+            <div>
+              <label for="price">Price</label>
+              <input id="price" name="price" type="number" min="0" step="0.01" value="0" required>
+            </div>
+          </div>
+          <div class="row">
+            <div>
+              <label for="item-barcode">Barcode</label>
+              <input id="item-barcode" name="barcode">
+            </div>
+            <div>
+              <label for="brand">Brand</label>
+              <input id="brand" name="brand">
+            </div>
+          </div>
+          <label for="category">Category</label>
+          <input id="category" name="category">
+          <label for="description">Description</label>
+          <textarea id="description" name="description" rows="2"></textarea>
+          <button type="submit">Add to inventory</button>
+        </form>
+      </section>
+    </div>
+
+    {% if products %}
+    <section class="results">
+      <h2>Open Food Facts results</h2>
+      {% for product in products %}
+      <article class="product">
+        <h3>{{ product.name }}</h3>
+        <p class="hint">
+          {% if product.brand %}{{ product.brand }}{% endif %}
+          {% if product.barcode %} · {{ product.barcode }}{% endif %}
+          {% if product.category %} · {{ product.category }}{% endif %}
+        </p>
+        {% if product.description %}<p>{{ product.description }}</p>{% endif %}
+        <form method="post" action="{{ url_for('admin.import_item') }}">
+          <input type="hidden" name="barcode" value="{{ product.barcode or '' }}">
+          <input type="hidden" name="name" value="{{ product.name }}">
+          <input type="hidden" name="match_index" value="{{ loop.index0 }}">
+          <div class="row">
+            <div>
+              <label for="import-qty-{{ loop.index0 }}">Quantity</label>
+              <input id="import-qty-{{ loop.index0 }}" name="quantity" type="number" min="0" step="1" value="1" required>
+            </div>
+            <div>
+              <label for="import-price-{{ loop.index0 }}">Price</label>
+              <input id="import-price-{{ loop.index0 }}" name="price" type="number" min="0" step="0.01" value="0" required>
+            </div>
+          </div>
+          <button type="submit">Add to inventory</button>
+        </form>
+      </article>
+      {% endfor %}
+    </section>
+    {% endif %}
+
+    <section class="inventory">
+      <h2>Current inventory</h2>
+      {% if items %}
+      <table>
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Name</th>
+            <th>Barcode</th>
+            <th>Qty</th>
+            <th>Price</th>
+            <th>Brand</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for item in items %}
+          <tr>
+            <td>{{ item.id }}</td>
+            <td>{{ item.name }}</td>
+            <td>{{ item.barcode or "—" }}</td>
+            <td>{{ item.quantity }}</td>
+            <td>{{ "%.2f"|format(item.price) }}</td>
+            <td>{{ item.brand or "—" }}</td>
+            <td class="actions">
+              <details>
+                <summary>Edit</summary>
+                <form method="post" action="{{ url_for('admin.update_item', item_id=item.id) }}">
+                  <label for="edit-name-{{ item.id }}">Name</label>
+                  <input id="edit-name-{{ item.id }}" name="name" value="{{ item.name }}" required>
+                  <div class="row">
+                    <div>
+                      <label for="edit-qty-{{ item.id }}">Quantity</label>
+                      <input id="edit-qty-{{ item.id }}" name="quantity" type="number" min="0" step="1" value="{{ item.quantity }}" required>
+                    </div>
+                    <div>
+                      <label for="edit-price-{{ item.id }}">Price</label>
+                      <input id="edit-price-{{ item.id }}" name="price" type="number" min="0" step="0.01" value="{{ item.price }}" required>
+                    </div>
+                  </div>
+                  <label for="edit-barcode-{{ item.id }}">Barcode</label>
+                  <input id="edit-barcode-{{ item.id }}" name="barcode" value="{{ item.barcode or '' }}">
+                  <label for="edit-brand-{{ item.id }}">Brand</label>
+                  <input id="edit-brand-{{ item.id }}" name="brand" value="{{ item.brand or '' }}">
+                  <label for="edit-category-{{ item.id }}">Category</label>
+                  <input id="edit-category-{{ item.id }}" name="category" value="{{ item.category or '' }}">
+                  <label for="edit-description-{{ item.id }}">Description</label>
+                  <textarea id="edit-description-{{ item.id }}" name="description" rows="2">{{ item.description or '' }}</textarea>
+                  <input type="hidden" name="image_url" value="{{ item.image_url or '' }}">
+                  <button type="submit">Save changes</button>
+                </form>
+              </details>
+              <form method="post" action="{{ url_for('admin.delete_item', item_id=item.id) }}" onsubmit="return confirm('Delete this item?');">
+                <button class="danger" type="submit">Delete</button>
+              </form>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      {% else %}
+      <p class="hint">No inventory items yet.</p>
+      {% endif %}
+    </section>
+  </main>
+</body>
+</html>
