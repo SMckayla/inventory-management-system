@@ -38,15 +38,6 @@ class FakeClient:
             return {"products": []}
         return {"products": [{"name": "Nutella", "barcode": barcode or "999", "brand": "Ferrero"}]}
 
-    def import_product(self, payload):
-        self.calls.append(("import", payload))
-        return {
-            "id": 4,
-            "name": "Nutella",
-            "quantity": payload["quantity"],
-            "price": payload["price"],
-        }
-
 
 def _install(monkeypatch):
     holder = {}
@@ -84,7 +75,7 @@ def test_get_add_and_search(monkeypatch, capsys):
     assert holder["client"].calls[-1] == ("search", "tea")
 
 
-def test_lookup_and_import(monkeypatch, capsys):
+def test_lookup(monkeypatch, capsys):
     holder = _install(monkeypatch)
 
     assert cli.main(["lookup"]) == 1
@@ -92,26 +83,10 @@ def test_lookup_and_import(monkeypatch, capsys):
 
     assert cli.main(["lookup", "--barcode", "3017620422003"]) == 0
     assert "Nutella" in capsys.readouterr().out
+    assert holder["client"].calls[-1] == ("lookup", "3017620422003", None)
 
     assert cli.main(["lookup", "--barcode", "missing"]) == 0
     assert "No products found." in capsys.readouterr().out
-
-    assert cli.main([
-        "import-product",
-        "--barcode",
-        "3017620422003",
-        "--quantity",
-        "2",
-        "--price",
-        "4.99",
-    ]) == 0
-    assert "Imported #4 Nutella" in capsys.readouterr().out
-    imported = holder["client"].calls[-1][1]
-    assert imported["barcode"] == "3017620422003"
-    assert imported["quantity"] == 2
-    assert imported["price"] == 4.99
-
-    assert cli.main(["import-product", "--quantity", "1"]) == 1
 
 
 def test_api_errors_use_a_nonzero_exit_code(monkeypatch, capsys):
