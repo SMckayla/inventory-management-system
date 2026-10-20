@@ -30,28 +30,23 @@ def test_create_appends_to_the_database_array():
     assert store.records[0]["barcode"] == "111"
 
 
-def test_ids_keep_incrementing_after_delete():
+def test_ids_increase_for_each_create():
     store = InventoryStore()
     first = store.create(_item())
-    store.delete(first["id"])
     second = store.create(_item(name="Oolong"))
+    assert first["id"] == 1
     assert second["id"] == 2
-    assert [record["name"] for record in store.records] == ["Oolong"]
+    assert [record["name"] for record in store.records] == ["Green Tea", "Oolong"]
 
 
-def test_get_update_and_delete():
+def test_get_returns_a_copy():
     store = InventoryStore()
     created = store.create(_item())
-    assert store.get(created["id"])["name"] == "Green Tea"
-    updated = store.update(created["id"], {"quantity": 2, "price": 4})
-    assert updated["quantity"] == 2
-    assert updated["price"] == 4
-    assert updated["name"] == "Green Tea"
-    removed = store.delete(created["id"])
-    assert removed["id"] == created["id"]
-    assert store.get(created["id"]) is None
-    assert store.delete(created["id"]) is None
-    assert store.update(created["id"], {"name": "Missing"}) is None
+    fetched = store.get(created["id"])
+    assert fetched["name"] == "Green Tea"
+    fetched["name"] = "Changed"
+    assert store.records[0]["name"] == "Green Tea"
+    assert store.get(999) is None
 
 
 def test_search_matches_name_brand_and_barcode():

@@ -33,12 +33,6 @@ class ApiClient:
     def create_item(self, payload):
         return self._request("POST", "/api/inventory", json=payload)
 
-    def update_item(self, item_id, payload):
-        return self._request("PATCH", f"/api/inventory/{item_id}", json=payload)
-
-    def delete_item(self, item_id):
-        return self._request("DELETE", f"/api/inventory/{item_id}")
-
     def search_items(self, query):
         return self._request("GET", "/api/inventory/search", params={"q": query})
 
@@ -49,9 +43,6 @@ class ApiClient:
         if name:
             params["name"] = name
         return self._request("GET", "/api/external/products", params=params)
-
-    def import_product(self, payload):
-        return self._request("POST", "/api/inventory/import", json=payload)
 
     def _request(self, method, path, **kwargs):
         try:
@@ -90,14 +81,7 @@ def build_parser():
     get_cmd.add_argument("id", type=int)
 
     add_cmd = commands.add_parser("add", help="Create an inventory item")
-    _item_flags(add_cmd, require_name=True)
-
-    update_cmd = commands.add_parser("update", help="Patch an inventory item")
-    update_cmd.add_argument("id", type=int)
-    _item_flags(update_cmd, require_name=False)
-
-    delete_cmd = commands.add_parser("delete", help="Delete an inventory item")
-    delete_cmd.add_argument("id", type=int)
+    _item_flags(add_cmd)
 
     search_cmd = commands.add_parser("search", help="Search stored inventory")
     search_cmd.add_argument("query")
@@ -105,16 +89,6 @@ def build_parser():
     lookup_cmd = commands.add_parser("lookup", help="Fetch product details from Open Food Facts")
     lookup_cmd.add_argument("--barcode")
     lookup_cmd.add_argument("--name")
-
-    import_cmd = commands.add_parser(
-        "import-product",
-        help="Fetch a product from Open Food Facts and add it to inventory",
-    )
-    import_cmd.add_argument("--barcode")
-    import_cmd.add_argument("--name")
-    import_cmd.add_argument("--quantity", type=int, default=0)
-    import_cmd.add_argument("--price", type=float, default=0)
-    import_cmd.add_argument("--match-index", type=int, default=0)
 
     return parser
 
@@ -150,21 +124,6 @@ def _dispatch(client, args):
         print(f"Created #{item['id']} {item['name']}")
         return 0
 
-    if args.command == "update":
-        payload = _payload_from_args(args)
-        if not payload:
-            print("Provide at least one field to update.", file=sys.stderr)
-            return 1
-        item = client.update_item(args.id, payload)
-        print(f"Updated #{item['id']} {item['name']}")
-        return 0
-
-    if args.command == "delete":
-        result = client.delete_item(args.id)
-        deleted = result["deleted"]
-        print(f"Deleted #{deleted['id']} {deleted['name']}")
-        return 0
-
     if args.command == "search":
         _print_table(client.search_items(args.query))
         return 0
@@ -181,32 +140,12 @@ def _dispatch(client, args):
         print(json.dumps(products, indent=2))
         return 0
 
-    if args.command == "import-product":
-        if not args.barcode and not args.name:
-            print("Provide --barcode or --name.", file=sys.stderr)
-            return 1
-        payload = {
-            "quantity": args.quantity,
-            "price": args.price,
-            "match_index": args.match_index,
-        }
-        if args.barcode:
-            payload["barcode"] = args.barcode
-        if args.name:
-            payload["name"] = args.name
-        item = client.import_product(payload)
-        print(
-            f"Imported #{item['id']} {item['name']} "
-            f"(qty {item['quantity']}, price {item['price']:.2f})"
-        )
-        return 0
-
     print(f"Unknown command: {args.command}", file=sys.stderr)
     return 1
 
 
-def _item_flags(parser, require_name):
-    parser.add_argument("--name", required=require_name)
+def _item_flags(parser):
+    parser.add_argument("--name", required=True)
     parser.add_argument("--quantity", type=int)
     parser.add_argument("--price", type=float)
     parser.add_argument("--barcode")

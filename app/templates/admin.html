@@ -96,7 +96,7 @@
 <body>
   <header>
     <h1>Inventory Admin</h1>
-    <p class="lede">Add, edit, and remove stock. Look up a barcode or product name on Open Food Facts and save it to inventory.</p>
+    <p class="lede">Add stock by hand, or look up a barcode or product name on Open Food Facts.</p>
   </header>
   <main>
     {% with messages = get_flashed_messages(with_categories=true) %}
@@ -170,22 +170,6 @@
           {% if product.category %} · {{ product.category }}{% endif %}
         </p>
         {% if product.description %}<p>{{ product.description }}</p>{% endif %}
-        <form method="post" action="{{ url_for('admin.import_item') }}">
-          <input type="hidden" name="barcode" value="{{ product.barcode or '' }}">
-          <input type="hidden" name="name" value="{{ product.name }}">
-          <input type="hidden" name="match_index" value="{{ loop.index0 }}">
-          <div class="row">
-            <div>
-              <label for="import-qty-{{ loop.index0 }}">Quantity</label>
-              <input id="import-qty-{{ loop.index0 }}" name="quantity" type="number" min="0" step="1" value="1" required>
-            </div>
-            <div>
-              <label for="import-price-{{ loop.index0 }}">Price</label>
-              <input id="import-price-{{ loop.index0 }}" name="price" type="number" min="0" step="0.01" value="0" required>
-            </div>
-          </div>
-          <button type="submit">Add to inventory</button>
-        </form>
       </article>
       {% endfor %}
     </section>
@@ -203,7 +187,6 @@
             <th>Qty</th>
             <th>Price</th>
             <th>Brand</th>
-            <th>Actions</th>
           </tr>
         </thead>
         <tbody>
@@ -215,38 +198,6 @@
             <td>{{ item.quantity }}</td>
             <td>{{ "%.2f"|format(item.price) }}</td>
             <td>{{ item.brand or "—" }}</td>
-            <td class="actions">
-              <details>
-                <summary>Edit</summary>
-                <form method="post" action="{{ url_for('admin.update_item', item_id=item.id) }}">
-                  <label for="edit-name-{{ item.id }}">Name</label>
-                  <input id="edit-name-{{ item.id }}" name="name" value="{{ item.name }}" required>
-                  <div class="row">
-                    <div>
-                      <label for="edit-qty-{{ item.id }}">Quantity</label>
-                      <input id="edit-qty-{{ item.id }}" name="quantity" type="number" min="0" step="1" value="{{ item.quantity }}" required>
-                    </div>
-                    <div>
-                      <label for="edit-price-{{ item.id }}">Price</label>
-                      <input id="edit-price-{{ item.id }}" name="price" type="number" min="0" step="0.01" value="{{ item.price }}" required>
-                    </div>
-                  </div>
-                  <label for="edit-barcode-{{ item.id }}">Barcode</label>
-                  <input id="edit-barcode-{{ item.id }}" name="barcode" value="{{ item.barcode or '' }}">
-                  <label for="edit-brand-{{ item.id }}">Brand</label>
-                  <input id="edit-brand-{{ item.id }}" name="brand" value="{{ item.brand or '' }}">
-                  <label for="edit-category-{{ item.id }}">Category</label>
-                  <input id="edit-category-{{ item.id }}" name="category" value="{{ item.category or '' }}">
-                  <label for="edit-description-{{ item.id }}">Description</label>
-                  <textarea id="edit-description-{{ item.id }}" name="description" rows="2">{{ item.description or '' }}</textarea>
-                  <input type="hidden" name="image_url" value="{{ item.image_url or '' }}">
-                  <button type="submit">Save changes</button>
-                </form>
-              </details>
-              <form method="post" action="{{ url_for('admin.delete_item', item_id=item.id) }}" onsubmit="return confirm('Delete this item?');">
-                <button class="danger" type="submit">Delete</button>
-              </form>
-            </td>
           </tr>
           {% endfor %}
         </tbody>
