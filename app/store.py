@@ -38,23 +38,6 @@ class InventoryStore:
         self.records.append(record)
         return record.copy()
 
-    def update(self, item_id, data):
-        """Apply a partial update. Return None when the id is unknown."""
-        record = self._find(item_id)
-        if record is None:
-            return None
-        for key, value in data.items():
-            if key != "id" and key in record:
-                record[key] = value
-        return record.copy()
-
-    def delete(self, item_id):
-        """Remove a record from the array. Return None when it is missing."""
-        for index, record in enumerate(self.records):
-            if record["id"] == item_id:
-                return self.records.pop(index).copy()
-        return None
-
     def search(self, query):
         """Case-insensitive match on name, barcode, brand, and category."""
         needle = query.strip().lower()
