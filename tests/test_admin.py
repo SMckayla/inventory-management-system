@@ -36,7 +36,7 @@ def test_admin_can_create_an_item(client):
     assert stored["price"] == 3.0
 
 
-def test_admin_shows_external_results_and_imports_them(client, store, monkeypatch):
+def test_admin_shows_external_results_without_saving_them(client, store, monkeypatch):
     monkeypatch.setattr(
         "app.openfoodfacts.requests.get",
         lambda *args, **kwargs: FakeResponse(NUTELLA),
@@ -45,18 +45,8 @@ def test_admin_shows_external_results_and_imports_them(client, store, monkeypatc
     page = lookup.get_data(as_text=True)
     assert "Nutella" in page
     assert "Ferrero" in page
-    assert "Add to inventory" in page
-
-    imported = client.post(
-        "/import",
-        data={"barcode": "3017620422003", "quantity": "2", "price": "5.50", "match_index": "0"},
-        follow_redirects=True,
-    )
-    assert "Imported Nutella into inventory." in imported.get_data(as_text=True)
-    assert len(store.records) == 1
-    assert store.records[0]["name"] == "Nutella"
-    assert store.records[0]["quantity"] == 2
-    assert store.records[0]["price"] == 5.5
+    assert "Open Food Facts results" in page
+    assert store.records == []
 
 
 def test_admin_reports_a_failed_lookup(client, monkeypatch):
