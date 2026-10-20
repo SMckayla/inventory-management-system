@@ -1,4 +1,4 @@
-"""JSON routes for inventory CRUD and Open Food Facts lookup."""
+"""JSON routes for inventory reads, creates, and Open Food Facts lookup."""
 
 from flask import Blueprint, current_app, jsonify, request
 
@@ -62,25 +62,6 @@ def create_item():
     if error:
         return jsonify({"error": error}), 400
     return jsonify(_store().create(payload)), 201
-
-
-@api_bp.patch("/inventory/<int:item_id>")
-def update_item(item_id):
-    payload, error = parse_item_payload(request.get_json(silent=True), partial=True)
-    if error:
-        return jsonify({"error": error}), 400
-    item = _store().update(item_id, payload)
-    if item is None:
-        return jsonify({"error": "Item not found."}), 404
-    return jsonify(item)
-
-
-@api_bp.delete("/inventory/<int:item_id>")
-def delete_item(item_id):
-    item = _store().delete(item_id)
-    if item is None:
-        return jsonify({"error": "Item not found."}), 404
-    return jsonify({"deleted": item})
 
 
 @api_bp.get("/external/products")
