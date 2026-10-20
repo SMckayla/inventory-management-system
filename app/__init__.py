@@ -2,6 +2,7 @@
 
 from flask import Flask
 
+from app.admin import admin_bp
 from app.routes import api_bp
 from app.store import InventoryStore
 
@@ -15,4 +16,5 @@ def create_app(store=None):
     app.config["SECRET_KEY"] = "dev-inventory-lab"
     app.config["INVENTORY"] = store if store is not None else InventoryStore()
     app.register_blueprint(api_bp)
+    app.register_blueprint(admin_bp)
     return app
